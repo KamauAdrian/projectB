@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Post;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -14,7 +15,19 @@ class PostsController extends Controller
      */
     public function index()
     {
-      return view('posts.index');
+        $posts = Post::latest();
+        if($month = request('month')){
+
+            $posts->whereMonth('created_at',Carbon::parse($month)->month);
+
+        }
+        if($year = request('year')){
+
+            $posts->whereYear('created_at',$year);
+
+        }
+        $posts = $posts->get();
+      return view('posts.index',compact('posts'));
     }
 
     /**
@@ -35,7 +48,39 @@ class PostsController extends Controller
      */
     public function store(Request $request)
     {
-        //
+//        dd(request()->all());
+        //validate the post
+
+        $this->validate(request(),[
+            'title'=>'required',
+            'body'=>'required  | min:2'
+        ]);
+
+
+
+        //create the post
+$post = new Post();
+$post->user_id = auth()->user()->id;
+$post->title = request('title');
+$post->body = request('body');
+        if($request->has('img')){
+            $file = $request->file('img');
+
+            $name = $file->getClientOriginalName();
+            $file->move('images', $name);
+            $input['path']=$name;
+            $post->path = $name;
+        }else{
+            $name = 'avatar.png';
+            $post->path = $name;
+        }
+
+
+
+        //save the post
+        $post->save();
+        //redirect to the main page
+        return redirect('/');
     }
 
     /**
@@ -44,9 +89,9 @@ class PostsController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(post $post)
     {
-        //
+        return view('posts.show',compact('post'));
     }
 
     /**
